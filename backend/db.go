@@ -157,23 +157,32 @@ func (db *Database) SetUserChatAsRead(ctx context.Context, userID int64, chatID 
 
 // AddMessage adds Message to the database.
 func (db *Database) AddMessage(ctx context.Context, cmd string, message *Message) error {
-	time, _ := message.Raw["time"].(float64)
-	messageID, _ := message.Raw["id"].(string)
-	chatID, _ := message.Raw["chatId"].(string)
-	json, _ := json.Marshal(message.Raw)
-
 	db.Lock()
 	defer db.Unlock()
 
 	// INSERT or REPLACE message.
 	_, err := db.ExecContext(ctx,
 		cmd+` INTO messages (time, message_number, message_id, chat_id, json) VALUES (?, ?, ?, ?, ?)`,
-		time, message.Number, messageID, chatID, string(json))
+		message.Timestamp, message.Number, message.MessageID, message.ChatID, message.JSON)
 	if err != nil {
 		return err
 	}
 
 	db.MessageW.Notify()
+	return nil
+}
+
+func (db *Database) AddChat(ctx context.Context, chat *Chat) error {
+	db.Lock()
+	defer db.Unlock()
+
+	_, err := db.ExecContext(ctx,
+		`REPLACE INTO chats (chat_id, json) VALUES (?, ?)`,
+		chat.ID, chat.JSON)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -242,7 +251,7 @@ func (db *Database) GetLastMessageNumber(ctx context.Context) (int64, error) {
 
 type MessageRow struct {
 	ID   int64
-	JSON string
+	JSON []byte
 }
 
 // GetRecentMessages returns the last 1000 messages ordered by time.
@@ -257,7 +266,7 @@ func (db *Database) GetRecentMessages(ctx context.Context) ([]MessageRow, error)
 
 	for rows.Next() {
 		var id int64
-		var json string
+		var json []byte
 		err = rows.Scan(&id, &json)
 		if err != nil {
 			return nil, err
@@ -284,7 +293,7 @@ func (db *Database) GetMessagesAfterID(ctx context.Context, id int64) ([]Message
 
 	for rows.Next() {
 		var id int64
-		var json string
+		var json []byte
 		err = rows.Scan(&id, &json)
 		if err != nil {
 			return nil, err
@@ -311,7 +320,7 @@ func (db *Database) GetChatMessages(ctx context.Context, chatID string) ([]Messa
 
 	for rows.Next() {
 		var id int64
-		var json string
+		var json []byte
 		err = rows.Scan(&id, &json)
 		if err != nil {
 			return nil, err
@@ -324,4 +333,35 @@ func (db *Database) GetChatMessages(ctx context.Context, chatID string) ([]Messa
 	}
 
 	return messages, nil
+}
+
+type ChatRow struct {
+	ID   int64
+	JSON []byte
+}
+
+func (db *Database) GetChats(ctx context.Context) ([]ChatRow, error) {
+	var chats []ChatRow
+
+	rows, err := db.QueryContext(ctx, `SELECT id, json FROM chats`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var id int64
+		var json []byte
+		err = rows.Scan(&id, &json)
+		if err != nil {
+			return nil, err
+		}
+		chats = append(chats, ChatRow{id, json})
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	return chats, nil
 }

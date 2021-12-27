@@ -24,8 +24,8 @@ func NewChatAPIHTTP(db *ChatAPIDB) *ChatAPIHTTP {
 }
 
 type WebhookRequest struct {
-	ACKs     []*WebhookACKRequest     `json:"ack"`
-	Messages []map[string]interface{} `json:"messages"`
+	ACKs     []*WebhookACKRequest `json:"ack"`
+	Messages []BJSON              `json:"messages"`
 }
 
 type WebhookACKRequest struct {
@@ -57,9 +57,9 @@ func (wa *ChatAPIHTTP) Webhook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Convert JSON maps into Message objects.
-	messages, err := NewMessagesFromMap(req.Messages)
+	messages, err := NewMessagesFromBJSON(req.Messages)
 	if err != nil {
-		log.Printf("NewMessagesFromMap: %v", err)
+		log.Printf("NewMessagesFromBJSON: %v", err)
 		// Do not return!
 		// Use Message's that were successfully converted.
 	}

@@ -44,6 +44,12 @@ func (wa *ChatAPIDB) Start(ctx context.Context) error {
 		return err
 	}
 
+	// Get chats.
+	err = wa.CopyChats(ctx)
+	if err != nil {
+		return err
+	}
+
 	// Start by copying the last 10 messages.
 	if number > 10 {
 		wa.LastMessageNumber = number - 10
@@ -51,6 +57,7 @@ func (wa *ChatAPIDB) Start(ctx context.Context) error {
 
 	// Start background goroutines.
 	go wa.CopyNewMessagesLoop(ctx)
+	go wa.CopyChatsLoop(ctx)
 
 	// Started.
 	return nil
@@ -151,4 +158,40 @@ func (wa *ChatAPIDB) CopyChatMessages(ctx context.Context, chatID string) error 
 
 	// All chat messages copied.
 	return nil
+}
+
+func (wa *ChatAPIDB) CopyChatsLoop(ctx context.Context) {
+	ticker := time.NewTicker(time.Hour)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+
+		err := wa.CopyChats(ctx)
+		if err != nil {
+			log.Printf("CopyChats: %v", err)
+		}
+	}
+}
+
+func (wa *ChatAPIDB) CopyChats(ctx context.Context) error {
+	// Request chats from Chat-API.
+	chats, err := wa.ChatAPI.GetChats(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Send chats to the database.
+	var firstErr error
+	for _, chat := range chats {
+		err = wa.DB.AddChat(ctx, chat)
+		if err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
+	return firstErr
 }

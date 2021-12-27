@@ -142,9 +142,9 @@ type GetMessagesOptions struct {
 }
 
 type GetMessagesResponse struct {
-	LastMessageNumber *int64                    `json:"lastMessageNumber"`
-	Messages          *[]map[string]interface{} `json:"messages"`
-	Error             string                    `json:"error"`
+	LastMessageNumber *int64   `json:"lastMessageNumber"`
+	Messages          *[]BJSON `json:"messages"`
+	Error             string   `json:"error"`
 }
 
 // GetMessages fetches messages from Chat-API.
@@ -214,14 +214,73 @@ func (wa *ChatAPI) GetMessages(ctx context.Context, options GetMessagesOptions) 
 	}
 
 	// Create Message instances.
-	messages, err := NewMessagesFromMap(*j.Messages)
+	messages, err := NewMessagesFromBJSON(*j.Messages)
 	if err != nil {
 		log.Printf("WARNING: Ignoring message from Chat-API!")
-		log.Printf("NewMessagesFromMap: %v", err)
+		log.Printf("NewMessagesFromBJSON: %v", err)
 	}
 
-	// Send Message's to user.
+	// Message's fetched from Chat-API.
 	return messages, lastMessageNumber, nil
+}
+
+type GetChatsResponse struct {
+	Chats *[]BJSON `json:"dialogs"`
+}
+
+func (wa *ChatAPI) GetChats(ctx context.Context) ([]*Chat, error) {
+	log.Printf("ChatAPI.GetChats()")
+
+	// Prepare URL.
+	u := *wa.URL
+	u.Path += "/dialogs"
+	q := u.Query()
+	q.Add("token", wa.Token)
+	u.RawQuery = q.Encode()
+
+	// Create request.
+	req, err := http.NewRequestWithContext(ctx, "GET", u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Send request.
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	// Read response body.
+	b, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	// Log response.
+	log.Printf("Chat-API /dialogs response: %s", b)
+
+	// Decode response body.
+	var j GetChatsResponse
+	err = json.Unmarshal(b, &j)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check response.
+	if j.Chats == nil {
+		return nil, fmt.Errorf("Chat-API /dialogs is missing key dialogs")
+	}
+
+	// Create Chat instances.
+	chats, err := NewChatsFromBJSON(*j.Chats)
+	if err != nil {
+		log.Printf("WARNING: Ignoring chat from Chat-API!")
+		log.Printf("NewChatsFromBJSON: %v", err)
+	}
+
+	// Chat's fetched from Chat-API.
+	return chats, nil
 }
 
 // ackToNum converts an ack string to a comparable number.

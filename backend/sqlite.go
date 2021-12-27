@@ -30,4 +30,11 @@ CREATE TABLE IF NOT EXISTS messages (
 	json TEXT
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_messages_id ON messages (message_id);
+
+CREATE TABLE IF NOT EXISTS chats (
+	id INTEGER PRIMARY KEY,
+	chat_id TEXT,
+	json TEXT
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_chats_id ON chats (chat_id);
 `
