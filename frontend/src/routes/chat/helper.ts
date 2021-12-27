@@ -1,0 +1,1 @@
+export const ackMap = { '': '', 'sent': '➤', 'delivered': '✓', 'viewed': '✓✓' }

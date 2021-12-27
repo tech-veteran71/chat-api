@@ -1,0 +1,6 @@
+.vscode
+static
+chatapi
+data.sqlite
+config*.json
+chatapi-*.json
