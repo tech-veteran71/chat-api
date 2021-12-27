@@ -2,4 +2,4 @@
 
 Web interface for Chat-API in Golang + SvelteKit.
 
-[[screenshot-chat.jpg|Chat screenshot]]
+![Chat Screenshot](screenshot-chat.jpg)
