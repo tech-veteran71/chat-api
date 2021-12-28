@@ -21,7 +21,7 @@
 
     function onReload() {
         reloading = true;
-        getChatMessages(chatID)
+        getChatMessages(chatID, { update: true })
             .catch(handleError("Unable to update messages"))
             .finally(() => reloading = false);
     }

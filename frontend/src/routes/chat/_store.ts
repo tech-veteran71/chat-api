@@ -2,7 +2,8 @@ import type { ChatInfo } from "../api/_info"
 import type { Message } from "$lib/whatsapp/chat-api/types"
 import { derived, writable } from "svelte/store"
 import { chatInfo, chatInfoByChatID } from "../api/_info"
-import { messagesByChatID, messagesByID, message$ } from "../api/_messages"
+import { messagesByChatID, message$ } from "../api/_messages"
+import { dialog$ } from "../api/_dialogs"
 
 // One screen contact.
 export interface ScreenChat {
@@ -26,20 +27,31 @@ export const selectedChatID = writable('')
 // Contact filter
 export const screenChatsFilter = writable('')
 
-// ScreenChat's - Left div.
-export const screenChats = derived([message$, chatInfo, screenChatsFilter], ([$message, _chatInfo, screenChatsFilter]) => {
-    console.log('Updating screenChats.')
+export const allScreenChats = derived([dialog$, message$, chatInfo, screenChatsFilter], ([$dialog, $message, _chatInfo, screenChatsFilter]) => {
+    console.log('Updating screenChats %o + %o.', $dialog.length, $message.length)
 
     const chats = [] as ScreenChat[]
+    const chatByID = {} as Record<string, ScreenChat>
 
-    for (const [chatID, messages] of Object.entries(messagesByChatID)) {
-        const chat: ScreenChat = {
-            id: chatID,
-            chatName: '',
-            senderName: '',
-            time: 0,
-            unread: 0,
+    function getChat(chatID: string): ScreenChat {
+        let chat = chatByID[chatID]
+        if (chat === undefined) {
+            chat = {
+                id: chatID,
+                chatName: '',
+                senderName: '',
+                time: 0,
+                unread: 0,
+            }
+            chatByID[chatID] = chat
+            chats.push(chat)
         }
+        return chatByID[chatID]
+    }
+
+    // Add chats from messages.
+    for (const [chatID, messages] of Object.entries(messagesByChatID)) {
+        const chat = getChat(chatID)
         // Get the time of the last read message.
         const info = chatInfoByChatID[chatID] ?? {} as ChatInfo
         const lastReadMessage = info.readBefore ?? 0
@@ -52,8 +64,6 @@ export const screenChats = derived([message$, chatInfo, screenChatsFilter], ([$m
                 chat.unread += 1
             }
         }
-        // TODO: Messages are not ordered by timestamp yet here.
-        // TODO: Use for starting at the last message instead of going through all messages.
         // Place the last chatName on Chat.
         for (const message of Object.values(messages)) {
             if (typeof message.chatName === 'string') {
@@ -75,17 +85,35 @@ export const screenChats = derived([message$, chatInfo, screenChatsFilter], ([$m
                 chat.time = message.time
             }
         }
-        // Apply filter to the Chat list.
-        if (!chat.chatName.includes(screenChatsFilter) && !chat.senderName.includes(screenChatsFilter)) {
-            continue
-        }
-        // Show Chat to the user.
-        chats.push(chat)
     }
+
+    // Add chats from dialogs.
+    for (const dialog of $dialog) {
+        const chat = getChat(dialog.id)
+        chat.chatName = dialog.name
+        if (chat.time === 0) {
+            chat.time = dialog.last_time
+        }
+    }
+
     // TODO: Allow user to select the sorting algorithm.
     chats.sort((a, b) => b.time - a.time)
 
     return chats
+})
+
+// ScreenChat's - Left div.
+export const screenChats = derived([allScreenChats, screenChatsFilter], ([chats, screenChatsFilter]) => {
+    if (screenChatsFilter === '') {
+        return chats
+    }
+    return chats.filter(filterChat)
+
+    // Apply filter to the Chat list.
+    function filterChat(chat: ScreenChat): boolean {
+        return chat.chatName.includes(screenChatsFilter)
+            || chat.senderName.includes(screenChatsFilter)
+    }
 })
 
 // ScreenMessage's - Right div.

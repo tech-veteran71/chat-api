@@ -275,7 +275,8 @@ type MessageRow struct {
 func (db *Database) GetRecentMessages(ctx context.Context) ([]MessageRow, error) {
 	var messages []MessageRow
 
-	rows, err := db.QueryContext(ctx, `SELECT id, json FROM messages ORDER BY time DESC LIMIT 1000`)
+	sql_chats := `SELECT *, row_number() OVER (PARTITION BY chat_id ORDER BY time DESC) AS row FROM messages`
+	rows, err := db.QueryContext(ctx, `SELECT id, json FROM (`+sql_chats+`) AS messages WHERE row <= 20 ORDER BY time DESC`)
 	if err != nil {
 		return nil, err
 	}

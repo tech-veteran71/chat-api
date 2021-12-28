@@ -69,11 +69,16 @@ export async function getMessages(): Promise<void> {
     updateStores(json.messages)
 }
 
-export async function getChatMessages(chatID: string): Promise<void> {
+export interface GetChatMessagesOptions {
+    update: boolean
+}
+
+export async function getChatMessages(chatID: string, { update }: GetChatMessagesOptions = { update: false }): Promise<void> {
     console.log(`Getting messages from chat ID %o.`, chatID)
 
     const params = new URLSearchParams()
     params.set('chat_id', chatID)
+    if (update) params.set('update', 'true')
 
     const headers = {}
     headers['Authorization'] = getAuthorization()

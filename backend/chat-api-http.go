@@ -213,7 +213,11 @@ retry:
 	json.NewEncoder(w).Encode(map[string]interface{}{"messages": messages})
 }
 
-// MessagesByChatID fetches messages from Chat-API for a single chat.
+// MessagesByChatID fetches messages from the database for a single chat.
+//
+// Query parameters:
+// chat_id: only messages in this chat will be fetched.
+// update: synchronize database messages with Chat-API.
 func (wa *ChatAPIHTTP) MessagesByChatID(w http.ResponseWriter, r *http.Request) {
 	uq := r.URL.Query()
 
@@ -225,10 +229,12 @@ func (wa *ChatAPIHTTP) MessagesByChatID(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Update database.
-	err := wa.CopyChatMessages(r.Context(), chatID)
-	if err != nil {
-		http.Error(w, "Cannot copy messages from Chat-API", http.StatusInternalServerError)
-		return
+	if uq.Has("update") {
+		err := wa.CopyChatMessages(r.Context(), chatID)
+		if err != nil {
+			http.Error(w, "Cannot copy messages from Chat-API", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	// Fetch messages from database.

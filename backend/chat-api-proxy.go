@@ -16,6 +16,9 @@ func (api *ChatAPIProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Set Host header to the Chat-API hostname.
 	r.Host = api.URL.Host
 
+	// Let Chat-API know it's us.
+	r.Header.Set("User-Agent", "https://github.com/andre-luiz-dos-santos/chat-api")
+
 	// Add Chat-API token to the URL.
 	uq := r.URL.Query()
 	uq.Set("token", api.Token)

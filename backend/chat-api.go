@@ -39,6 +39,7 @@ func (wa *ChatAPI) GetStatus(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	req.Header.Set("User-Agent", "https://github.com/andre-luiz-dos-santos/chat-api")
 
 	// Send request.
 	res, err := http.DefaultClient.Do(req)
@@ -99,6 +100,7 @@ func (wa *ChatAPI) SetWebhook(ctx context.Context, url string) error {
 	if err != nil {
 		return err
 	}
+	req.Header.Set("User-Agent", "https://github.com/andre-luiz-dos-santos/chat-api")
 	req.Header.Set("Content-Type", "application/json")
 
 	// Send request.
@@ -177,6 +179,7 @@ func (wa *ChatAPI) GetMessages(ctx context.Context, options GetMessagesOptions) 
 	if err != nil {
 		return nil, 0, err
 	}
+	req.Header.Set("User-Agent", "https://github.com/andre-luiz-dos-santos/chat-api")
 
 	// Send request.
 	res, err := http.DefaultClient.Do(req)
@@ -243,6 +246,7 @@ func (wa *ChatAPI) GetChats(ctx context.Context) ([]*Chat, error) {
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("User-Agent", "https://github.com/andre-luiz-dos-santos/chat-api")
 
 	// Send request.
 	res, err := http.DefaultClient.Do(req)

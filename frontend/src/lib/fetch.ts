@@ -23,7 +23,7 @@ export function f(url, options = {} as FOptions) {
     }
 
     const timeout = setTimeout(() => {
-        console.log("Aborting request.")
+        console.log("Request timed out.")
         controller.abort()
     }, options.timeout)
 

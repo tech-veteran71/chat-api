@@ -33,7 +33,7 @@ export interface GetDialogsJSON {
 }
 
 export async function getDialogs(): Promise<void> {
-    console.log(`Getting dialogs.`)
+    console.log(`Getting dialogs after row ID %o.`, lastRowID)
 
     const params = new URLSearchParams()
     params.set('id', lastRowID.toString())

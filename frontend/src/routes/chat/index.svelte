@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { sync$ as messageSync } from "../api/_messages";
+    import { getChatMessages, sync$ as messageSync } from "../api/_messages";
     import { sync$ as chatSync } from "../api/_dialogs";
     import { selectedChatID } from "./_store";
     import Messages from "./_messages.svelte";
@@ -7,6 +7,7 @@
 
     $: console.dir($chatSync);
     $: console.dir($messageSync);
+    $: if ($selectedChatID) getChatMessages($selectedChatID);
 
     // Scroll to the top when another chat is selected.
     let messagesDiv = {} as Element;
