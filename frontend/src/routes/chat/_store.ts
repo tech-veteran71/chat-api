@@ -27,7 +27,7 @@ export const selectedChatID = writable('')
 // Contact filter
 export const screenChatsFilter = writable('')
 
-export const allScreenChats = derived([dialog$, message$, chatInfo, screenChatsFilter], ([$dialog, $message, _chatInfo, screenChatsFilter]) => {
+export const allScreenChats = derived([dialog$, message$, chatInfo], ([$dialog, $message, _chatInfo]) => {
     console.log('Updating screenChats %o + %o.', $dialog.length, $message.length)
 
     const chats = [] as ScreenChat[]
