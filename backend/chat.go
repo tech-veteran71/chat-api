@@ -58,3 +58,39 @@ func NewChatsFromBJSON(bs []BJSON) ([]*Chat, error) {
 
 	return chats, firstErr
 }
+
+func NewChatFromRow(row ChatRow) (*Chat, error) {
+	chat, err := NewChatFromBJSON(row.JSON)
+	if err != nil {
+		return chat, err
+	}
+
+	err = chat.JSON.Update(func(j map[string]interface{}) error {
+		j["__rowID"] = row.ID
+		return nil
+	})
+	return chat, err
+}
+
+func NewChatsFromRow(rows []ChatRow) ([]*Chat, error) {
+	var firstErr error
+	chats := make([]*Chat, 0, len(rows))
+
+	for _, row := range rows {
+		chat, err := NewChatFromRow(row)
+		if err != nil {
+			if firstErr == nil {
+				firstErr = err
+			}
+			continue
+		}
+
+		chats = append(chats, chat)
+	}
+
+	return chats, firstErr
+}
+
+func (chat *Chat) MarshalJSON() ([]byte, error) {
+	return chat.JSON.MarshalJSON()
+}

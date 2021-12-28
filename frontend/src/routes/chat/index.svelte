@@ -1,32 +1,12 @@
 <script lang="ts">
-    import { getMessages } from "../api/_messages";
-    import { ErrTimeout } from "$lib/fetch";
-    import { onMount } from "svelte";
+    import { sync$ as messageSync } from "../api/_messages";
+    import { sync$ as chatSync } from "../api/_dialogs";
     import { selectedChatID } from "./_store";
-    import Chats from "./_chats.svelte";
     import Messages from "./_messages.svelte";
+    import Chats from "./_chats.svelte";
 
-    // Keep the messages store updated.
-    let timer: any;
-    onMount(() => {
-        timer = setTimeout(onTimer, 0);
-        return () => clearTimeout(timer);
-    });
-    async function onTimer() {
-        let delay = 100; // ms
-        try {
-            // TODO: Tell the user that something went wrong.
-            await getMessages()
-        } catch (err) {
-            if (err !== ErrTimeout) {
-                console.log("Could not get new messages.")
-                console.error(err)
-                delay = 5000; // ms
-            }
-        } finally {
-            timer = setTimeout(onTimer, delay);
-        }
-    }
+    $: console.dir($chatSync);
+    $: console.dir($messageSync);
 
     // Scroll to the top when another chat is selected.
     let messagesDiv = {} as Element;

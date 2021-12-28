@@ -7,8 +7,8 @@ import (
 
 // Message is a chat message.
 type Message struct {
+	ID        string `json:"id"`
 	ChatID    string `json:"chatId"`
-	MessageID string `json:"id"`
 	Timestamp int64  `json:"time"`
 	Number    int64  `json:"messageNumber"`
 	JSON      BJSON  `json:"-"`
@@ -33,7 +33,7 @@ func NewMessageFromBJSON(b BJSON) (*Message, error) {
 	}
 
 	// Validate message.
-	if message.MessageID == "" {
+	if message.ID == "" {
 		return message, &MessageError{message, "message ID is missing"}
 	}
 	if message.ChatID == "" {

@@ -56,7 +56,7 @@ func (wa *ChatAPIHTTP) Webhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert JSON maps into Message objects.
+	// Convert BJSON's into Message's.
 	messages, err := NewMessagesFromBJSON(req.Messages)
 	if err != nil {
 		log.Printf("NewMessagesFromBJSON: %v", err)
@@ -248,4 +248,61 @@ func (wa *ChatAPIHTTP) MessagesByChatID(w http.ResponseWriter, r *http.Request) 
 
 	// Send messages to user.
 	json.NewEncoder(w).Encode(map[string]interface{}{"messages": messages})
+}
+
+// Chats fetches chats from the database.
+// New chats are not immediately fetched from Chat-API.
+//
+// Query parameters:
+// id: only chats after this one will be fetched.
+// wait: if not empty, wait for new chats to arrive.
+func (wa *ChatAPIHTTP) Chats(w http.ResponseWriter, r *http.Request) {
+	var err error
+	uq := r.URL.Query()
+
+	// Get row ID of last sent chat.
+	var qID int64
+	if uq.Has("id") {
+		qID, err = strconv.ParseInt(uq.Get("id"), 10, 64)
+		if err != nil {
+			http.Error(w, "Invalid ID", http.StatusBadRequest)
+			return
+		}
+	}
+
+	// Create wait context.
+	wait := uq.Has("wait")
+	var waitCtx context.Context
+	if wait {
+		var cancel context.CancelFunc
+		waitCtx, cancel = context.WithTimeout(r.Context(), time.Minute)
+		defer cancel()
+	}
+retry:
+
+	// Get chats from database.
+	rows, err := wa.DB.GetChatsAfterID(r.Context(), qID)
+	if err != nil {
+		log.Printf("Database.GetChatsAfterID(%v): %v", qID, err)
+		http.Error(w, "Cannot access database", http.StatusInternalServerError)
+		return
+	}
+
+	// If there are no chats, wait for new chats.
+	if wait && len(rows) <= 0 {
+		if wa.DB.ChatW.Wait(waitCtx) == nil {
+			goto retry
+		}
+	}
+
+	// Convert ChatRow's into Chat's.
+	chats, err := NewChatsFromRow(rows)
+	if err != nil {
+		log.Printf("NewChatsFromRow: %v", err)
+		// Do not return!
+		// Send chats that were successfully converted.
+	}
+
+	// Send chats to user.
+	json.NewEncoder(w).Encode(map[string]interface{}{"chats": chats})
 }

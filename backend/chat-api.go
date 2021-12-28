@@ -213,7 +213,7 @@ func (wa *ChatAPI) GetMessages(ctx context.Context, options GetMessagesOptions) 
 		lastMessageNumber = *j.LastMessageNumber
 	}
 
-	// Create Message instances.
+	// Convert BJSON's into Message's.
 	messages, err := NewMessagesFromBJSON(*j.Messages)
 	if err != nil {
 		log.Printf("WARNING: Ignoring message from Chat-API!")

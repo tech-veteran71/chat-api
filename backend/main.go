@@ -81,6 +81,7 @@ func main() {
 	apiMux.HandleFunc("/logout", auth.HTTPLogout)
 	apiMux.HandleFunc("/messages/all", wadbHTTP.Messages)
 	apiMux.HandleFunc("/messages/chat_id", wadbHTTP.MessagesByChatID)
+	apiMux.HandleFunc("/chats/all", wadbHTTP.Chats)
 	apiMux.HandleFunc("/chat/info", wadbHTTP.GetUserChatInfo)
 	apiMux.HandleFunc("/chat/info/read", wadbHTTP.SetUserChatAsRead)
 
@@ -121,14 +122,14 @@ func main() {
 		}
 		devProxy := httputil.NewSingleHostReverseProxy(u)
 		mux.Handle("/", devProxy)
+	} else {
+		// If no proxy is set, files in /static/ will be served.
+		staticFS, err := fs.Sub(staticFiles, "static")
+		if err != nil {
+			log.Fatal(err)
+		}
+		mux.Handle("/", http.FileServer(http.FS(staticFS)))
 	}
-
-	// If no proxy is set, files in /static/ will be served.
-	staticFS, err := fs.Sub(staticFiles, "static")
-	if err != nil {
-		log.Fatal(err)
-	}
-	mux.Handle("/", http.FileServer(http.FS(staticFS)))
 
 	http.ListenAndServe(":8080", mux)
 }

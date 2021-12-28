@@ -1,4 +1,5 @@
 export interface Dialog {
+    __rowID: number // not from Chat-API, but our own local database
     id: string
     name: string
     image: string

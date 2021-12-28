@@ -21,7 +21,6 @@ export async function getInfo(): Promise<void> {
     headers['Authorization'] = getAuthorization()
     const res = await fetch('/api/chat/info', { headers })
     const json = await res.json() as GetInfoJSON
-    console.dir(json)
 
     chatInfoByChatID = {}
     for (const info of json.infos) {

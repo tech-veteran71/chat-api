@@ -20,6 +20,7 @@ type Database struct {
 	// TODO: Check why two goroutines writing to the database at the same time fails.
 	sync.Mutex
 
+	ChatW    Wait
 	MessageW Wait
 }
 
@@ -160,10 +161,17 @@ func (db *Database) AddMessage(ctx context.Context, cmd string, message *Message
 	db.Lock()
 	defer db.Unlock()
 
-	// INSERT or REPLACE message.
-	_, err := db.ExecContext(ctx,
+	// Return if message is already in the database.
+	var id int64
+	err := db.QueryRowContext(ctx, `SELECT id FROM messages WHERE message_id = ? AND json = ?`, message.ID, message.JSON).Scan(&id)
+	if err == nil || err != sql.ErrNoRows {
+		return err
+	}
+
+	// INSERT or REPLACE new message (needs new id).
+	_, err = db.ExecContext(ctx,
 		cmd+` INTO messages (time, message_number, message_id, chat_id, json) VALUES (?, ?, ?, ?, ?)`,
-		message.Timestamp, message.Number, message.MessageID, message.ChatID, message.JSON)
+		message.Timestamp, message.Number, message.ID, message.ChatID, message.JSON)
 	if err != nil {
 		return err
 	}
@@ -176,13 +184,22 @@ func (db *Database) AddChat(ctx context.Context, chat *Chat) error {
 	db.Lock()
 	defer db.Unlock()
 
-	_, err := db.ExecContext(ctx,
+	// Return if chat is already in the database.
+	var id int64
+	err := db.QueryRowContext(ctx, `SELECT id FROM chats WHERE chat_id = ? AND json = ? LIMIT 1`, chat.ID, chat.JSON).Scan(&id)
+	if err == nil || err != sql.ErrNoRows {
+		return err
+	}
+
+	// INSERT or REPLACE new chat (needs new id).
+	_, err = db.ExecContext(ctx,
 		`REPLACE INTO chats (chat_id, json) VALUES (?, ?)`,
 		chat.ID, chat.JSON)
 	if err != nil {
 		return err
 	}
 
+	db.ChatW.Notify()
 	return nil
 }
 
@@ -340,10 +357,10 @@ type ChatRow struct {
 	JSON []byte
 }
 
-func (db *Database) GetChats(ctx context.Context) ([]ChatRow, error) {
+func (db *Database) GetChatsAfterID(ctx context.Context, id int64) ([]ChatRow, error) {
 	var chats []ChatRow
 
-	rows, err := db.QueryContext(ctx, `SELECT id, json FROM chats`)
+	rows, err := db.QueryContext(ctx, `SELECT id, json FROM chats WHERE id > ? ORDER BY id`, id)
 	if err != nil {
 		return nil, err
 	}

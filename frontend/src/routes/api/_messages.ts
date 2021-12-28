@@ -1,7 +1,8 @@
-import { f } from "$lib/fetch"
-import { getAuthorization } from "$lib/login"
 import type { Message } from "$lib/whatsapp/chat-api/types"
+import { getAuthorization } from "$lib/login"
 import { writable } from "svelte/store"
+import { syncStore } from "$lib/util"
+import { f } from "$lib/fetch"
 
 // All messages received from the server.
 export const message$ = writable([] as Message[]) // [Message]
@@ -19,7 +20,7 @@ function updateStores(newMessages: Message[]): void {
     if (newMessages.length === 0) {
         return
     }
-    // Update lastMessageNumber.
+    // Update row ID.
     for (const message of newMessages) {
         if (message.__rowID > lastRowID) {
             lastRowID = message.__rowID
@@ -55,8 +56,8 @@ export async function getMessages(): Promise<void> {
     console.log(`Getting messages after row ID %o.`, lastRowID)
 
     const params = new URLSearchParams()
-    params.set('wait', 'true')
     params.set('id', lastRowID.toString())
+    params.set('wait', 'true')
 
     const headers = {}
     headers['Authorization'] = getAuthorization()
@@ -83,3 +84,5 @@ export async function getChatMessages(chatID: string): Promise<void> {
     const json: GetMessagesJSON = await res.json()
     updateStores(json.messages)
 }
+
+export const sync$ = syncStore('messages', getMessages)
